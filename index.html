@@ -49,8 +49,14 @@
     }
 
     .wrap{
-      width:min(540px, 100%);
+      width:min(620px, 100%);
       padding:22px;
+   }
+    @media (max-width: 480px){
+    .wrap{
+        width:100%;
+        padding:12px; /* 바깥 여백 줄여서 카드가 더 커 보이게 */
+        }
     }
 
     .card{
@@ -63,10 +69,19 @@
       overflow:hidden;
       color: var(--text);
 
-      height: 80vh;
-      height: 80svh;
-      height: 80dvh;
-      max-height: 720px;
+      height: 84vh;
+      height: 84svh;
+      height: 84dvh;
+      max-height: 760px;
+
+      @media (max-width: 480px){
+      .card{
+        height: 92svh;
+        height: 92dvh;
+        max-height: none;
+        border-radius: 22px; /* 살짝만 줄이면 더 꽉 차 보임 */
+        }
+      }
 
       display:flex;
       flex-direction:column;
