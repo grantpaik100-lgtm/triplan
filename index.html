@@ -953,10 +953,13 @@
       });
 
       setProgress(100);
+
+
 submitResultToSheet({
   profile,
   answers,
   score,
+  userPref, 
   type
 });
     }
@@ -1068,6 +1071,73 @@ const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzR0MP9yOL7pj
 // CORS/리다이렉트 문제 회피용: no-cors 모드로 전송 (응답을 읽을 수는 없지만 저장은 됨)
 // 저장 성공/실패를 UI로 확실히 보려면 서버를 따로 두거나, 같은 도메인 프록시가 필요.
 // 지금 단계(MVP/데이터 수집)에는 "일단 쌓이게"가 우선이라 no-cors가 가장 간단함.
+
+<script>
+/* ... (기존 코드) ... */
+
+/***********************
+ * v1: score -> userPref
+ ***********************/
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+/**
+ * Convert accumulated score object into normalized user preference vector (0..1).
+ * @param {Object} score
+ * @returns {Object} userPref
+ */
+function scoreToUserPref(score){
+  // 1) normalize raw scores into 0..1 based on theoretical maxima
+  const r_relax = clamp01((score.Relaxation || 0) / 11.2);      // 7 + 0.6*7
+  const r_act   = clamp01((score.Activity || 0) / 7);
+  const r_rec   = clamp01((score.RecoveryNeed || 0) / 7);
+
+  const r_nov   = clamp01((score.Novelty || 0) / 9.8);          // 7 + 0.4*7
+  const r_cul   = clamp01((score.Culture || 0) / 7);
+
+  const r_food  = clamp01((score.Food || 0) / 7);
+  const r_mood  = clamp01((score.Mood || 0) / 7);
+
+  const r_move  = clamp01((score.MovePain || 0) / 7);
+  const r_queue = clamp01((score.QueuePain || 0) / 7);
+  const r_wait  = clamp01((score.WaitAvoid || 0) / 7);
+
+  const r_struct= clamp01((score.Structure || 0) / 11.2);       // 7 + 0.6*7
+  const r_spont = clamp01((score.SpontaneityStress || 0) / 7);
+
+  const r_budget= clamp01((score.BudgetImportant || 0) / 7);
+  const r_prem  = clamp01((score.PremiumOk || 0) / 7);
+
+  // 2) build preference axes (6)
+  const pref = {
+    mood: r_mood,
+    culture: r_cul,
+    novelty: r_nov,
+    food: r_food,
+    relaxation: r_relax,
+    activity: r_act,
+
+    // constraint-like axes
+    queue_hate: clamp01(0.55*r_queue + 0.45*r_wait),
+    move_hate: r_move,
+    recovery_need: r_rec,
+    budget_sensitive: r_budget,
+    premium_ok: r_prem,
+
+    // derived helper axes
+    efficiency: clamp01(0.40*r_move + 0.35*r_queue + 0.25*r_wait),  // "efficiency need"
+    structure: clamp01(0.65*r_struct + 0.35*r_spont),
+
+    // debug: keep normalized raws (optional but useful for later validation)
+    _rawNorm: {
+      r_relax, r_act, r_rec, r_nov, r_cul, r_food, r_mood,
+      r_move, r_queue, r_wait, r_struct, r_spont, r_budget, r_prem
+    }
+  };
+
+  return pref;
+}
+</script>
+
 function submitResultToSheet(payload){
   if(!SHEETS_WEBAPP_URL || SHEETS_WEBAPP_URL.includes("여기에_")) return;
 
